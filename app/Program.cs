@@ -3,16 +3,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Xml.Linq;
 
-// The exam program. It gets the path of an input file, and prints the report.
-// Run it from the exam folder:  python check/run_checks.py run
-// Without a path, it reads data/sample.txt.
 class Program
 {
     static void Main(string[] args)
     {
-        // Hebrew is printed as UTF-8, also on Windows
         Console.OutputEncoding = new UTF8Encoding(false);
         string path = args.Length > 0 ? args[0] : FindSample();
         string[] lines = File.ReadAllLines(path, Encoding.UTF8);
@@ -20,27 +15,68 @@ class Program
         List<string[]> rows = ReadRows(lines);
         Console.Error.WriteLine("skeleton ok: read " + Path.GetFileName(path) + " - report day " + reportDay + " - " + rows.Count + " rows");
 
-        // Write your code here. 'reportDay' and 'rows' are ready.
-        foreach (var lone in rows)
+        List<Lone> lones = new List<Lone>();
+
+        foreach (string[] row in rows)
         {
-            if (lone.Length==6)
-            {
-                int reader_id = lone[0],
-                string name = lone[1];
-                Status status = lone[2];
-                string book = lone[3];
-                int loan_day = lone[4];
-                int return_day = lone[5];
-            }
-            else
-            {
-                int reader_id = lone[0],
-                string name = lone[1];
-                Status status = lone[2];
-                string book = lone[3];
-                int loan_day = lone[4];
-                int return_day = lone[5];
-            }
+            if (row.Length < 5) continue;
+
+            bool returned = row.Length >= 6 && row[5] != "";
+            int returnDay = returned ? int.Parse(row[5]) : reportDay;
+
+            Lone l = new Lone(int.Parse(row[0]), row[1], row[2], row[3], int.Parse(row[4]), returnDay);
+            l.Returned = returned;
+            lones.Add(l);
+        }
+
+        PrintFines(lones);
+        PrintFlagged(lones);
+    }
+
+    // חישוב קנס לפי סוג הקוראת
+    static int CalcFine(Lone l)
+    {
+        int days = l.Return_day - l.Loan_day;
+
+        if (l.type == "student")
+        {
+            int late = days - 14;
+            if (late <= 1) return 0;          
+            return Math.Min(late, 30);       
+        }
+
+        if (l.type == "guest")
+        {
+            int late = days - 7;
+            if (late <= 0) return 0;
+            return (int)Math.Ceiling(late * 2.5);   
+        }
+
+        return 0;   // teacher
+    }
+
+    // מורה שלא החזירה ועברו יותר מ-60 ימים
+    static bool IsFlagged(Lone l)
+    {
+        return l.type == "teacher" && !l.Returned && (l.Return_day - l.Loan_day) > 60;
+    }
+
+    static void PrintFines(List<Lone> lones)
+    {
+        Console.WriteLine("FINES");
+        foreach (Lone l in lones)
+        {
+            Console.WriteLine($"{l.ReaderId},{l.name},{CalcFine(l)}");
+        }
+    }
+
+    static void PrintFlagged(List<Lone> lones)
+    {
+        Console.WriteLine("FLAGGED");
+        foreach (Lone l in lones)
+        {
+            if (IsFlagged(l))
+                Console.WriteLine($"{l.ReaderId},{l.name}");
         }
     }
 
@@ -63,7 +99,7 @@ class Program
         return rows;
     }
 
-    // Without a path, look for data/sample.txt next to the project, also when started from Visual Studio
+    // Without a path, look for data/sample.txt next to the project
     static string FindSample()
     {
         DirectoryInfo dir = new DirectoryInfo(AppContext.BaseDirectory);
