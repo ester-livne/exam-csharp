@@ -1,7 +1,9 @@
+using App;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Xml.Linq;
 
 // The exam program. It gets the path of an input file, and prints the report.
 // Run it from the exam folder:  python check/run_checks.py run
@@ -19,6 +21,27 @@ class Program
         Console.Error.WriteLine("skeleton ok: read " + Path.GetFileName(path) + " - report day " + reportDay + " - " + rows.Count + " rows");
 
         // Write your code here. 'reportDay' and 'rows' are ready.
+        foreach (var lone in rows)
+        {
+            if (lone.Length==6)
+            {
+                int reader_id = lone[0],
+                string name = lone[1];
+                Status status = lone[2];
+                string book = lone[3];
+                int loan_day = lone[4];
+                int return_day = lone[5];
+            }
+            else
+            {
+                int reader_id = lone[0],
+                string name = lone[1];
+                Status status = lone[2];
+                string book = lone[3];
+                int loan_day = lone[4];
+                int return_day = lone[5];
+            }
+        }
     }
 
     static int ReadReportDay(string[] lines)
